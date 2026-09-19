@@ -2,9 +2,6 @@
 
 **The Soroban smart contract that routes every tip on Featherpay.**
 
-Every tip sent through Featherpay is routed through this contract: it receives the payment from the tipper's embedded wallet and forwards it to the creator in a single atomic transaction, optionally splitting off a protocol fee to a treasury account along the way. This is a **required, active component of the core product** — not an optional or deferred layer.
----
-
 ## Table of Contents
 
 - [Overview](#overview)
