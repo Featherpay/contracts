@@ -105,13 +105,16 @@ contracts/
 
 ## Prerequisites
 
-- [Rust](https://www.rust-lang.org/tools/install) (stable, with the `wasm32-unknown-unknown` target)
-- [Soroban CLI](https://developers.stellar.org/docs/tools/developer-tools/cli/install-cli)
+- [Rust](https://www.rust-lang.org/tools/install) (stable ≥ 1.84, with the `wasm32v1-none` target — the target soroban-sdk 28 builds against; `wasm32-unknown-unknown` is *not* supported by soroban-sdk ≥ 28 on Rust 1.82+)
+- [Stellar CLI](https://developers.stellar.org/docs/tools/cli/install-cli) ≥ 28.0.0 (the `soroban` and `stellar` command names are aliases)
 
 ```bash
-rustup target add wasm32-unknown-unknown
-cargo install --locked soroban-cli
+rustup target add wasm32v1-none
+curl -fsSL https://github.com/stellar/stellar-cli/install.sh | sh
 ```
+
+Soroban SDK is pinned exactly (`=28.0.0`) and `Cargo.lock` is committed so the
+contract wasm is reproducible from the pinned toolchain + CLI.
 
 ## Getting Started
 
@@ -119,8 +122,8 @@ cargo install --locked soroban-cli
 git clone https://github.com/featherpay/contracts.git
 cd contracts
 
-soroban contract build
-soroban network start local
+stellar contract build   # or: soroban contract build
+stellar network start local
 ```
 
 ## Testing
@@ -138,12 +141,12 @@ Because this contract routes real funds, CI enforces:
 ## Deploying
 
 ```bash
-soroban contract deploy \
-  --wasm target/wasm32-unknown-unknown/release/tip_router.wasm \
+sudo stellar contract deploy \
+  --wasm target/wasm32v1-none/release/tip_router.wasm \
   --source <your-identity> \
   --network testnet
 
-soroban contract invoke \
+stellar contract invoke \
   --id <contract-id> \
   --source <your-identity> \
   --network testnet \
