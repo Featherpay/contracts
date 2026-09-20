@@ -1,0 +1,59 @@
+# CI — runs on every PR (and main).
+#
+# Gates (per Prompt.md Day 1 / PLAN.md M0):
+#   1. Release wasm build of the contract
+#   2. `cargo test --workspace`
+#   3. `cargo clippy -- -D warnings`
+#   4. `cargo fmt --check`
+#
+# Deviation from the original Prompt.md, deliberately:
+#   Prompt day 1 asked for `cargo build --target wasm32-unknown-unknown
+#   --release`. soroban-sdk >= 28 refuses that target: Rust 1.82+ enables
+#   reference-types/multi-value on wasm32-unknown-unknown, which the Soroban
+#   env does not support. The supported target is `wasm32v1-none` (Rust 1.84+),
+#   and soroban-sdk 28 only builds it when invoked through the stellar/soroban
+#   CLI. `stellar contract build` below is that gate — it produces the release
+#   wasm and is the exact command Prompt.md day 1 requires to pass in step 5.
+#   Rust toolchain, CLI, and soroban-sdk are all pinned so the wasm is
+#   reproducible from Cargo.lock.
+
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  contract:
+    name: Build, test, lint, format
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install pinned Rust toolchain
+        uses: dtolnay/rust-toolchain@1.96.0
+        with:
+          targets: wasm32v1-none
+          components: rustfmt, clippy
+
+      - name: Cache cargo
+        uses: Swatinem/rust-cache@v2
+
+      - name: Install stellar-cli (pinned release, verifies attestation)
+        uses: stellar/stellar-cli@v28.0.0
+
+      - name: Build contract wasm (release)
+        run: stellar contract build
+
+      - name: Test workspace
+        run: cargo test --workspace
+
+      - name: Clippy (deny warnings)
+        run: cargo clippy -- -D warnings
+
+      - name: Format check
+        run: cargo fmt --check
