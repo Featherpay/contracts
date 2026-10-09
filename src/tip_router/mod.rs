@@ -28,8 +28,13 @@ pub struct TipSentWithFee {
     pub timestamp: u64,
 }
 
-/// Paused state key for contract storage.
+/// Storage keys
 const PAUSED_KEY: &str = "paused";
+const FEE_BPS_KEY: &str = "fee_bps";
+
+/// TTL thresholds for instance storage
+const INSTANCE_TTL_THRESHOLD: u32 = 100_000; // ~2 years of ledgers
+const INSTANCE_TTL_BUMP: u32 = 500_000; // ~10 years of ledgers
 
 /// Error codes for the TipRouter contract.
 #[contracterror]
@@ -64,12 +69,26 @@ pub struct TipRouter;
 impl TipRouter {
     /// Check if the contract is paused.
     fn is_paused(env: &Env) -> bool {
+        env.storage().instance().extend_ttl(INSTANCE_TTL_THRESHOLD, INSTANCE_TTL_BUMP);
         env.storage().instance().get(&PAUSED_KEY).unwrap_or(false)
     }
 
     /// Set the paused state.
     fn set_paused(env: &Env, paused: bool) {
+        env.storage().instance().extend_ttl(INSTANCE_TTL_THRESHOLD, INSTANCE_TTL_BUMP);
         env.storage().instance().set(&PAUSED_KEY, &paused);
+    }
+
+    /// Get fee_bps with TTL extension
+    fn get_fee_bps_internal(env: &Env) -> u32 {
+        env.storage().instance().extend_ttl(INSTANCE_TTL_THRESHOLD, INSTANCE_TTL_BUMP);
+        env.storage().instance().get(&FEE_BPS_KEY).unwrap_or(0)
+    }
+
+    /// Set fee_bps with TTL extension
+    fn set_fee_bps_internal(env: &Env, fee_bps: u32) {
+        env.storage().instance().extend_ttl(INSTANCE_TTL_THRESHOLD, INSTANCE_TTL_BUMP);
+        env.storage().instance().set(&FEE_BPS_KEY, &fee_bps);
     }
 
     /// Sends a tip from `tipper` to `creator` atomically.
@@ -223,11 +242,11 @@ impl TipRouter {
         if fee_bps >= 10_000 {
             env.panic_with_error(Error::InvalidFeeBps);
         }
-        env.storage().instance().set(&"fee_bps", &fee_bps);
+        Self::set_fee_bps_internal(&env, fee_bps);
     }
 
     /// Get the current default fee basis points.
     pub fn get_fee_bps(env: Env) -> u32 {
-        env.storage().instance().get(&"fee_bps").unwrap_or(0)
+        Self::get_fee_bps_internal(&env)
     }
 }
