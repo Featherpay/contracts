@@ -1,6 +1,7 @@
 //! Tip routing: `send_tip`, `send_tip_with_fee`, `pause`/`unpause`.
 
-use soroban_sdk::{contract, contracterror, contractevent, contractimpl, token, Address, Env, Map};
+use soroban_sdk::{contract, contracterror, contractevent, contractimpl, token, Address, Env};
+use crate::fee;
 
 /// Event emitted when a tip is successfully sent.
 #[contractevent]
@@ -135,5 +136,98 @@ impl TipRouter {
     pub fn unpause(env: Env, admin: Address) {
         admin.require_auth();
         Self::set_paused(&env, false);
+    }
+
+    /// Sends a tip with a protocol fee from `tipper` to `creator` atomically.
+    ///
+    /// # Arguments
+    /// * `tipper` - The address sending the tip (must authorize the call)
+    /// * `creator` - The address receiving the tip
+    /// * `amount` - The total amount to tip (must be > 0)
+    /// * `asset` - The token contract address for the asset being tipped
+    /// * `fee_bps` - Protocol fee in basis points (must be > 0 and < 10_000)
+    /// * `treasury` - The address that receives the protocol fee
+    ///
+    /// # Authorization
+    /// Requires `tipper.require_auth()` — the tipper's embedded wallet must sign.
+    ///
+    /// # Events
+    /// Emits `TipSentWithFee` with tipper, creator, amount, asset, fee_amount, creator_amount, treasury, and ledger timestamp.
+    pub fn send_tip_with_fee(
+        env: Env,
+        tipper: Address,
+        creator: Address,
+        amount: i128,
+        asset: Address,
+        fee_bps: u32,
+        treasury: Address,
+    ) {
+        // Reject if contract is paused
+        if Self::is_paused(&env) {
+            env.panic_with_error(Error::ContractPaused);
+        }
+
+        // Reject zero or negative amounts
+        if amount <= 0 {
+            env.panic_with_error(Error::InvalidAmount);
+        }
+
+        // Reject self-tips
+        if tipper == creator {
+            env.panic_with_error(Error::SelfTip);
+        }
+
+        // Validate fee_bps
+        if fee_bps == 0 || fee_bps >= 10_000 {
+            env.panic_with_error(Error::InvalidFeeBps);
+        }
+
+        // Calculate fee and creator amounts
+        let (fee_amount, creator_amount) = fee::calculate_fee(&env, amount, fee_bps)
+            .unwrap_or_else(|e| env.panic_with_error(e));
+
+        // Tipper must authorize the call
+        tipper.require_auth();
+
+        // Get the token client for the asset
+        let token_client = token::Client::new(&env, &asset);
+        let contract_addr = env.current_contract_address();
+
+        // Pull full amount from tipper to this contract
+        token_client.transfer(&tipper, &contract_addr, &amount);
+
+        // Forward creator_amount to creator
+        token_client.transfer(&contract_addr, &creator, &creator_amount);
+
+        // Forward fee_amount to treasury
+        token_client.transfer(&contract_addr, &treasury, &fee_amount);
+
+        // Emit TipSentWithFee event with ledger timestamp
+        let timestamp = env.ledger().timestamp();
+        TipSentWithFee {
+            tipper,
+            creator,
+            amount,
+            asset,
+            fee_amount,
+            creator_amount,
+            treasury,
+            timestamp,
+        }
+        .publish(&env);
+    }
+
+    /// Admin-gated fee configuration: set default fee basis points.
+    pub fn set_fee_bps(env: Env, admin: Address, fee_bps: u32) {
+        admin.require_auth();
+        if fee_bps >= 10_000 {
+            env.panic_with_error(Error::InvalidFeeBps);
+        }
+        env.storage().instance().set(&"fee_bps", &fee_bps);
+    }
+
+    /// Get the current default fee basis points.
+    pub fn get_fee_bps(env: Env) -> u32 {
+        env.storage().instance().get(&"fee_bps").unwrap_or(0)
     }
 }

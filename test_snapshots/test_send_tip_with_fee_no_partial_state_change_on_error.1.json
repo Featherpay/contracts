@@ -1,6 +1,6 @@
 {
   "generators": {
-    "address": 5,
+    "address": 6,
     "nonce": 0,
     "mux_id": 0
   },
@@ -60,7 +60,7 @@
                   "address": "CAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAITA4"
                 },
                 {
-                  "i128": "1000"
+                  "i128": "10000"
                 }
               ]
             }
@@ -85,7 +85,7 @@
                   "address": "CBKMUZNFQIAL775XBB2W2GP5CNHBM5YGH6C3XB7AY6SUVO2IBU3VYK2V"
                 },
                 {
-                  "i128": "1000"
+                  "i128": "10000"
                 },
                 {
                   "u32": 1000
@@ -97,6 +97,8 @@
         }
       ]
     ],
+    [],
+    [],
     [],
     [],
     []
@@ -277,7 +279,7 @@
                       "symbol": "amount"
                     },
                     "val": {
-                      "i128": "1000"
+                      "i128": "10000"
                     }
                   },
                   {
@@ -321,7 +323,7 @@
                       "symbol": "amount"
                     },
                     "val": {
-                      "i128": "1000"
+                      "i128": "10000"
                     }
                   },
                   {
