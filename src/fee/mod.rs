@@ -12,7 +12,7 @@ use crate::tip_router::Error;
 /// Creator receives: creator_amount = amount - fee_amount
 ///
 /// Returns (fee_amount, creator_amount) or Error if validation fails.
-pub fn calculate_fee(env: &Env, amount: i128, fee_bps: u32) -> Result<(i128, i128), Error> {
+pub fn calculate_fee(_env: &Env, amount: i128, fee_bps: u32) -> Result<(i128, i128), Error> {
     // Validate fee_bps
     if fee_bps == 0 || fee_bps >= 10_000 {
         return Err(Error::InvalidFeeBps);
