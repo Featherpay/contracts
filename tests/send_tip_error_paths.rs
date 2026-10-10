@@ -47,13 +47,24 @@ fn setup_test<'a>(
     )
 }
 
-fn assert_contract_error(result: Result<Result<(), soroban_sdk::ConversionError>, Result<soroban_sdk::Error, InvokeError>>, expected_code: u32) {
+fn assert_contract_error(
+    result: Result<
+        Result<(), soroban_sdk::ConversionError>,
+        Result<soroban_sdk::Error, InvokeError>,
+    >,
+    expected_code: u32,
+) {
     match result {
         Err(Ok(e)) => {
             // Check if it's a contract error
             let error_str = format!("{:?}", e);
-            assert!(error_str.contains(&expected_code.to_string()), "Expected error code {}, got: {}", expected_code, error_str);
-        },
+            assert!(
+                error_str.contains(&expected_code.to_string()),
+                "Expected error code {}, got: {}",
+                expected_code,
+                error_str
+            );
+        }
         Err(Err(e)) => panic!("Expected ContractError({expected_code}), got InvokeError {e:?}"),
         Ok(_) => panic!("Expected error, got success"),
     }
@@ -251,7 +262,13 @@ fn test_pause_unpause_admin_only() {
         asset_client.mint(&tipper, &1000);
         let live_until = env.ledger().sequence() + 1000;
         token_client.approve(&tipper, &tip_router_address, &1000, &live_until);
-        (token_client, asset_client, tipper, creator, tip_router_address)
+        (
+            token_client,
+            asset_client,
+            tipper,
+            creator,
+            tip_router_address,
+        )
     };
 
     let result = tip_router_client.try_send_tip(&tipper, &creator, &100, &token_client.address);

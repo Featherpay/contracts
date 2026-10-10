@@ -50,12 +50,23 @@ fn setup_test<'a>(
     )
 }
 
-fn assert_contract_error(result: Result<Result<(), soroban_sdk::ConversionError>, Result<soroban_sdk::Error, InvokeError>>, expected_code: u32) {
+fn assert_contract_error(
+    result: Result<
+        Result<(), soroban_sdk::ConversionError>,
+        Result<soroban_sdk::Error, InvokeError>,
+    >,
+    expected_code: u32,
+) {
     match result {
         Err(Ok(e)) => {
             let error_str = format!("{:?}", e);
-            assert!(error_str.contains(&expected_code.to_string()), "Expected error code {}, got: {}", expected_code, error_str);
-        },
+            assert!(
+                error_str.contains(&expected_code.to_string()),
+                "Expected error code {}, got: {}",
+                expected_code,
+                error_str
+            );
+        }
         Err(Err(e)) => panic!("Expected ContractError({expected_code}), got InvokeError {e:?}"),
         Ok(_) => panic!("Expected error, got success"),
     }
@@ -66,8 +77,15 @@ fn test_send_tip_with_fee_standard_split() {
     let env = Env::default();
     env.mock_all_auths_allowing_non_root_auth();
 
-    let (tip_router_client, token_client, _asset_client, tipper, creator, treasury, tip_router_address) =
-        setup_test(&env);
+    let (
+        tip_router_client,
+        token_client,
+        _asset_client,
+        tipper,
+        creator,
+        treasury,
+        tip_router_address,
+    ) = setup_test(&env);
 
     let live_until = env.ledger().sequence() + 1000;
     token_client.approve(&tipper, &tip_router_address, &10000, &live_until);
@@ -75,7 +93,14 @@ fn test_send_tip_with_fee_standard_split() {
     // Send 10000 with 100 bps (1%) fee
     // fee = 10000 * 100 / 10000 = 100
     // creator = 10000 - 100 = 9900
-    tip_router_client.send_tip_with_fee(&tipper, &creator, &10000, &token_client.address, &100, &treasury);
+    tip_router_client.send_tip_with_fee(
+        &tipper,
+        &creator,
+        &10000,
+        &token_client.address,
+        &100,
+        &treasury,
+    );
 
     // Verify tipper balance decreased by exactly amount
     assert_eq!(token_client.balance(&tipper), 0);
@@ -95,8 +120,15 @@ fn test_send_tip_with_fee_rounding_at_micropayment_scale() {
     let env = Env::default();
     env.mock_all_auths_allowing_non_root_auth();
 
-    let (tip_router_client, token_client, _asset_client, tipper, creator, treasury, tip_router_address) =
-        setup_test(&env);
+    let (
+        tip_router_client,
+        token_client,
+        _asset_client,
+        tipper,
+        creator,
+        treasury,
+        tip_router_address,
+    ) = setup_test(&env);
 
     let live_until = env.ledger().sequence() + 1000;
     token_client.approve(&tipper, &tip_router_address, &10000, &live_until);
@@ -104,7 +136,14 @@ fn test_send_tip_with_fee_rounding_at_micropayment_scale() {
     // $0.50 tip (5000 atomic units) with 1% fee (100 bps)
     // fee = 5000 * 100 / 10000 = 50 (round down)
     // creator = 5000 - 50 = 4950
-    tip_router_client.send_tip_with_fee(&tipper, &creator, &5000, &token_client.address, &100, &treasury);
+    tip_router_client.send_tip_with_fee(
+        &tipper,
+        &creator,
+        &5000,
+        &token_client.address,
+        &100,
+        &treasury,
+    );
 
     assert_eq!(token_client.balance(&tipper), 5000);
     assert_eq!(token_client.balance(&creator), 4950);
@@ -117,15 +156,29 @@ fn test_send_tip_with_fee_minimum_viable_tip() {
     let env = Env::default();
     env.mock_all_auths_allowing_non_root_auth();
 
-    let (tip_router_client, token_client, _asset_client, tipper, creator, treasury, tip_router_address) =
-        setup_test(&env);
+    let (
+        tip_router_client,
+        token_client,
+        _asset_client,
+        tipper,
+        creator,
+        treasury,
+        tip_router_address,
+    ) = setup_test(&env);
 
     let live_until = env.ledger().sequence() + 1000;
     token_client.approve(&tipper, &tip_router_address, &10000, &live_until);
 
     // Minimum amount with 1% fee
     // amount=1: fee = 1 * 100 / 10000 = 0, creator = 1 (OK)
-    tip_router_client.send_tip_with_fee(&tipper, &creator, &1, &token_client.address, &100, &treasury);
+    tip_router_client.send_tip_with_fee(
+        &tipper,
+        &creator,
+        &1,
+        &token_client.address,
+        &100,
+        &treasury,
+    );
 
     assert_eq!(token_client.balance(&tipper), 9999);
     assert_eq!(token_client.balance(&creator), 1);
@@ -138,13 +191,27 @@ fn test_send_tip_with_fee_zero_bps_rejected() {
     let env = Env::default();
     env.mock_all_auths_allowing_non_root_auth();
 
-    let (tip_router_client, token_client, _asset_client, tipper, creator, treasury, tip_router_address) =
-        setup_test(&env);
+    let (
+        tip_router_client,
+        token_client,
+        _asset_client,
+        tipper,
+        creator,
+        treasury,
+        tip_router_address,
+    ) = setup_test(&env);
 
     let live_until = env.ledger().sequence() + 1000;
     token_client.approve(&tipper, &tip_router_address, &10000, &live_until);
 
-    let result = tip_router_client.try_send_tip_with_fee(&tipper, &creator, &100, &token_client.address, &0, &treasury);
+    let result = tip_router_client.try_send_tip_with_fee(
+        &tipper,
+        &creator,
+        &100,
+        &token_client.address,
+        &0,
+        &treasury,
+    );
 
     assert_contract_error(result, 7); // InvalidFeeBps
 }
@@ -154,14 +221,28 @@ fn test_send_tip_with_fee_max_bps_rejected() {
     let env = Env::default();
     env.mock_all_auths_allowing_non_root_auth();
 
-    let (tip_router_client, token_client, _asset_client, tipper, creator, treasury, tip_router_address) =
-        setup_test(&env);
+    let (
+        tip_router_client,
+        token_client,
+        _asset_client,
+        tipper,
+        creator,
+        treasury,
+        tip_router_address,
+    ) = setup_test(&env);
 
     let live_until = env.ledger().sequence() + 1000;
     token_client.approve(&tipper, &tip_router_address, &10000, &live_until);
 
     // fee_bps = 10000 (100%) should be rejected
-    let result = tip_router_client.try_send_tip_with_fee(&tipper, &creator, &100, &token_client.address, &10_000, &treasury);
+    let result = tip_router_client.try_send_tip_with_fee(
+        &tipper,
+        &creator,
+        &100,
+        &token_client.address,
+        &10_000,
+        &treasury,
+    );
 
     assert_contract_error(result, 7); // InvalidFeeBps
 }
@@ -171,14 +252,28 @@ fn test_send_tip_with_fee_over_max_bps_rejected() {
     let env = Env::default();
     env.mock_all_auths_allowing_non_root_auth();
 
-    let (tip_router_client, token_client, _asset_client, tipper, creator, treasury, tip_router_address) =
-        setup_test(&env);
+    let (
+        tip_router_client,
+        token_client,
+        _asset_client,
+        tipper,
+        creator,
+        treasury,
+        tip_router_address,
+    ) = setup_test(&env);
 
     let live_until = env.ledger().sequence() + 1000;
     token_client.approve(&tipper, &tip_router_address, &10000, &live_until);
 
     // fee_bps = 10001 should be rejected
-    let result = tip_router_client.try_send_tip_with_fee(&tipper, &creator, &100, &token_client.address, &10_001, &treasury);
+    let result = tip_router_client.try_send_tip_with_fee(
+        &tipper,
+        &creator,
+        &100,
+        &token_client.address,
+        &10_001,
+        &treasury,
+    );
 
     assert_contract_error(result, 7); // InvalidFeeBps
 }
@@ -188,8 +283,15 @@ fn test_send_tip_with_fee_creator_amount_zero_rejected() {
     let env = Env::default();
     env.mock_all_auths_allowing_non_root_auth();
 
-    let (tip_router_client, token_client, _asset_client, tipper, creator, treasury, tip_router_address) =
-        setup_test(&env);
+    let (
+        tip_router_client,
+        token_client,
+        _asset_client,
+        tipper,
+        creator,
+        treasury,
+        tip_router_address,
+    ) = setup_test(&env);
 
     let live_until = env.ledger().sequence() + 1000;
     token_client.approve(&tipper, &tip_router_address, &10000, &live_until);
@@ -204,7 +306,7 @@ fn test_send_tip_with_fee_creator_amount_zero_rejected() {
     // For fee_bps=9999, amount=1: fee=0, creator=1 (OK)
     // For fee_bps=9999, amount=2: fee=1, creator=1 (OK)
     // The contract correctly rejects when creator_amount <= 0
-    
+
     // Test with a very high fee that would consume the amount
     // This is tested implicitly - the contract should handle it
 }
@@ -214,15 +316,29 @@ fn test_send_tip_with_fee_treasury_equals_creator() {
     let env = Env::default();
     env.mock_all_auths_allowing_non_root_auth();
 
-    let (tip_router_client, token_client, _asset_client, tipper, creator, _treasury, tip_router_address) =
-        setup_test(&env);
+    let (
+        tip_router_client,
+        token_client,
+        _asset_client,
+        tipper,
+        creator,
+        _treasury,
+        tip_router_address,
+    ) = setup_test(&env);
 
     let live_until = env.ledger().sequence() + 1000;
     token_client.approve(&tipper, &tip_router_address, &10000, &live_until);
 
     // Treasury = creator (edge case)
     // Both amounts go to the same address
-    tip_router_client.send_tip_with_fee(&tipper, &creator, &10000, &token_client.address, &100, &creator);
+    tip_router_client.send_tip_with_fee(
+        &tipper,
+        &creator,
+        &10000,
+        &token_client.address,
+        &100,
+        &creator,
+    );
 
     // Creator receives both creator_amount + fee_amount
     assert_eq!(token_client.balance(&creator), 10000);
@@ -235,8 +351,15 @@ fn test_send_tip_with_fee_paused_contract_rejected() {
     let env = Env::default();
     env.mock_all_auths_allowing_non_root_auth();
 
-    let (tip_router_client, token_client, _asset_client, tipper, creator, treasury, tip_router_address) =
-        setup_test(&env);
+    let (
+        tip_router_client,
+        token_client,
+        _asset_client,
+        tipper,
+        creator,
+        treasury,
+        tip_router_address,
+    ) = setup_test(&env);
 
     let live_until = env.ledger().sequence() + 1000;
     token_client.approve(&tipper, &tip_router_address, &10000, &live_until);
@@ -246,7 +369,14 @@ fn test_send_tip_with_fee_paused_contract_rejected() {
     tip_router_client.pause(&admin);
 
     // Try to send tip with fee while paused
-    let result = tip_router_client.try_send_tip_with_fee(&tipper, &creator, &100, &token_client.address, &100, &treasury);
+    let result = tip_router_client.try_send_tip_with_fee(
+        &tipper,
+        &creator,
+        &100,
+        &token_client.address,
+        &100,
+        &treasury,
+    );
 
     assert_contract_error(result, 6); // ContractPaused
 }
@@ -256,14 +386,28 @@ fn test_send_tip_with_fee_no_partial_state_change_on_error() {
     let env = Env::default();
     env.mock_all_auths_allowing_non_root_auth();
 
-    let (tip_router_client, token_client, _asset_client, tipper, creator, treasury, tip_router_address) =
-        setup_test(&env);
+    let (
+        tip_router_client,
+        token_client,
+        _asset_client,
+        tipper,
+        creator,
+        treasury,
+        tip_router_address,
+    ) = setup_test(&env);
 
     let live_until = env.ledger().sequence() + 1000;
     token_client.approve(&tipper, &tip_router_address, &10000, &live_until);
 
     // Try to send more than balance
-    let result = tip_router_client.try_send_tip_with_fee(&tipper, &creator, &20000, &token_client.address, &100, &treasury);
+    let result = tip_router_client.try_send_tip_with_fee(
+        &tipper,
+        &creator,
+        &20000,
+        &token_client.address,
+        &100,
+        &treasury,
+    );
 
     assert!(result.is_err());
 

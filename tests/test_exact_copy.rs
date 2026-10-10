@@ -66,7 +66,10 @@ fn test_exact_copy() {
     let all_events = events.events();
     println!("DEBUG: Total events: {}", all_events.len());
     for (i, event) in all_events.iter().enumerate() {
-        println!("DEBUG Event {}: contract={:?}, type={:?}", i, event.contract_id, event.type_);
+        println!(
+            "DEBUG Event {}: contract={:?}, type={:?}",
+            i, event.contract_id, event.type_
+        );
     }
 
     // Filter events from our contract only

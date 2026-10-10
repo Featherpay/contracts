@@ -1,7 +1,7 @@
 //! Tip routing: `send_tip`, `send_tip_with_fee`, `pause`/`unpause`.
 
-use soroban_sdk::{contract, contracterror, contractevent, contractimpl, token, Address, Env};
 use crate::fee;
+use soroban_sdk::{contract, contracterror, contractevent, contractimpl, token, Address, Env};
 
 /// Event emitted when a tip is successfully sent.
 #[contractevent]
@@ -69,25 +69,33 @@ pub struct TipRouter;
 impl TipRouter {
     /// Check if the contract is paused.
     fn is_paused(env: &Env) -> bool {
-        env.storage().instance().extend_ttl(INSTANCE_TTL_THRESHOLD, INSTANCE_TTL_BUMP);
+        env.storage()
+            .instance()
+            .extend_ttl(INSTANCE_TTL_THRESHOLD, INSTANCE_TTL_BUMP);
         env.storage().instance().get(&PAUSED_KEY).unwrap_or(false)
     }
 
     /// Set the paused state.
     fn set_paused(env: &Env, paused: bool) {
-        env.storage().instance().extend_ttl(INSTANCE_TTL_THRESHOLD, INSTANCE_TTL_BUMP);
+        env.storage()
+            .instance()
+            .extend_ttl(INSTANCE_TTL_THRESHOLD, INSTANCE_TTL_BUMP);
         env.storage().instance().set(&PAUSED_KEY, &paused);
     }
 
     /// Get fee_bps with TTL extension
     fn get_fee_bps_internal(env: &Env) -> u32 {
-        env.storage().instance().extend_ttl(INSTANCE_TTL_THRESHOLD, INSTANCE_TTL_BUMP);
+        env.storage()
+            .instance()
+            .extend_ttl(INSTANCE_TTL_THRESHOLD, INSTANCE_TTL_BUMP);
         env.storage().instance().get(&FEE_BPS_KEY).unwrap_or(0)
     }
 
     /// Set fee_bps with TTL extension
     fn set_fee_bps_internal(env: &Env, fee_bps: u32) {
-        env.storage().instance().extend_ttl(INSTANCE_TTL_THRESHOLD, INSTANCE_TTL_BUMP);
+        env.storage()
+            .instance()
+            .extend_ttl(INSTANCE_TTL_THRESHOLD, INSTANCE_TTL_BUMP);
         env.storage().instance().set(&FEE_BPS_KEY, &fee_bps);
     }
 
@@ -202,8 +210,8 @@ impl TipRouter {
         }
 
         // Calculate fee and creator amounts
-        let (fee_amount, creator_amount) = fee::calculate_fee(&env, amount, fee_bps)
-            .unwrap_or_else(|e| env.panic_with_error(e));
+        let (fee_amount, creator_amount) =
+            fee::calculate_fee(&env, amount, fee_bps).unwrap_or_else(|e| env.panic_with_error(e));
 
         // Tipper must authorize the call
         tipper.require_auth();

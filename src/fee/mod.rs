@@ -3,8 +3,8 @@
 //! This module contains all fee math for the TipRouter contract.
 //! The tip_router module calls into this for all calculations.
 
-use soroban_sdk::{Env};
 use crate::tip_router::Error;
+use soroban_sdk::Env;
 
 /// Calculate fee amount and creator amount from total amount and fee basis points.
 ///
@@ -25,9 +25,7 @@ pub fn calculate_fee(_env: &Env, amount: i128, fee_bps: u32) -> Result<(i128, i1
         .checked_div(10_000)
         .ok_or(Error::InvalidFeeBps)?;
 
-    let creator_amount = amount
-        .checked_sub(fee_amount)
-        .ok_or(Error::InvalidFeeBps)?;
+    let creator_amount = amount.checked_sub(fee_amount).ok_or(Error::InvalidFeeBps)?;
 
     // Ensure creator gets something
     if creator_amount <= 0 {

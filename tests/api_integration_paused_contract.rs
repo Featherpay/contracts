@@ -37,7 +37,8 @@ fn test_api_integration_simulation_paused_contract_rejected() {
     tip_router_client.pause(&admin);
 
     // Api tries to submit tip while paused - should fail
-    let result = tip_router_client.try_send_tip(&tipper, &creator, &tip_amount, &token_client.address);
+    let result =
+        tip_router_client.try_send_tip(&tipper, &creator, &tip_amount, &token_client.address);
     assert!(result.is_err());
 
     // Verify no funds moved
